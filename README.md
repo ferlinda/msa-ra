@@ -1,4 +1,4 @@
-# Multichannel Slotted ALOHA
+# MSA-RA
 
 ## Sample Input & Output
 
