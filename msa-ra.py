@@ -17,10 +17,6 @@ class Device:
     def __str__(self):
         return "ID=%s,Channel=%s,Back off Range=%s,Back off timer=%s,Transmission=%s,Status=%s,Slot=%s" % (self.id,self.channel,self.range_backoff,self.backoff_timer,self.total_transmission,self.status,self.success_slot)
 
-def print_devices(device_list):
-    for device in device_list:
-        print(str(device))
-    print('--------------------------------------------')
 
 def initialization(M):
     device_list=[]
@@ -36,7 +32,6 @@ def initialization(M):
         device_list.append(Device(id, channel, range_backoff, backoff_timer, total_transmission, status, success_slot))
     return device_list
 
-# print_devices(initialization(100))
 
 def send_channel_request(device_list,R):
     # Device that previously will transmit, transmit at this phase of ts
@@ -142,19 +137,33 @@ def start_sim(total_channel,total_machine,max_transmission,backoff_window,range_
     slot_list=[]
     list_transmission_slot=[]
 
+    f = open("log.txt", "w")
+
 
     while M<total_machine+1:
         rep=0
         while rep<repetition:
+            f.write('\n--------------------------------------------')
+            f.write("\nRepetition: "+str(rep))
             slot=1
+            f.write('\n--------------------------------------------')
             device_list=initialization(M)
+            f.write('\nInitialization done.')
+            for device in device_list:
+                f.write("\n"+str(device))
+            f.write('\n--------------------------------------------')
             while True:
                 breakpoint=complete_transmit_check(device_list,M)
                 if breakpoint==1:
                     break
+                f.write("\nslot: "+str(slot))
                 device_list=send_channel_request(device_list, total_channel)
                 picked_channel=generate_channel_list(device_list)
                 device_list=check_collision(device_list, picked_channel, slot,max_transmission)
+                 # Print
+                for device in device_list:
+                    f.write("\n"+str(device))
+                f.write('\n--------------------------------------------')
                 if M==range_check:
                     sum_success=count_success_in_slot(device_list, slot)
                     try:
@@ -221,10 +230,14 @@ def start_sim(total_channel,total_machine,max_transmission,backoff_window,range_
         except ZeroDivisionError:
             avg_delay_list[i]=0
         i+=1
+    f.write("\nTotal device: "+str(num_of_dev))
+    f.write("\nAverage success probability: "+str(avg_success_list))
+    f.write("\nAverage delay: "+str(avg_delay_list))
+    f.write("\nSlot: "+str(slot_list))
+    f.write("\nAverage successful transmission each slot: "+str(list_success_slot))
+    f.write("\nAverage total transmission each slot: "+str(list_transmission_slot))
     return(num_of_dev,avg_success_list,avg_delay_list,slot_list,list_success_slot,list_transmission_slot)
 
-def cm_to_inch(value):
-    return value/2.54
 
 def main():
     print("RA-MSA\n----------------------------------\nChoose parameter:\n1. Channel\n2. Backoff window\n3. Maximum wransmission\n----------------------------------\nYour choice: ")
@@ -290,10 +303,12 @@ def main():
     else:
         print("Wrong choice.")
         exit()
-    print(num_of_dev1,avg_success_list1,avg_delay_list1,slot_list1,list_success_slot1,list_transmission_slot1)
-    print(num_of_dev2,avg_success_list2,avg_delay_list2,slot_list2,list_success_slot2,list_transmission_slot2)
-    print(num_of_dev3,avg_success_list3,avg_delay_list3,slot_list3,list_success_slot3,list_transmission_slot3)
-    print(num_of_dev4,avg_success_list4,avg_delay_list4,slot_list4,list_success_slot4,list_transmission_slot4)
+    
+    print(num_of_dev1,",",avg_success_list1,",",avg_delay_list1,",",slot_list1,",",list_success_slot1,",",list_transmission_slot1)
+    print(num_of_dev2,",",avg_success_list2,",",avg_delay_list2,",",slot_list2,",",list_success_slot2,",",list_transmission_slot2)
+    print(num_of_dev3,",",avg_success_list3,",",avg_delay_list3,",",slot_list3,",",list_success_slot3,",",list_transmission_slot3)
+    print(num_of_dev4,",",avg_success_list4,",",avg_delay_list4,",",slot_list4,",",list_success_slot4,",",list_transmission_slot4)
+    
     fig, axs = plt.subplots(nrows=2,ncols=2)
     axs[0, 0].plot(num_of_dev1, avg_success_list1,label='A')
     axs[0, 0].plot(num_of_dev2, avg_success_list2,label='B')
@@ -323,7 +338,6 @@ def main():
     axs[1, 1].set_title("Total transmission at slot")
     axs[1, 1].set(xlabel='Slot',ylabel='Total Transmission')
     axs[1, 1].legend()
-    plt.rcParams['figure.figsize'] = [cm_to_inch(50),cm_to_inch(55)]
     plt.show()
 
 
