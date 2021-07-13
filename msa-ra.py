@@ -43,7 +43,7 @@ def send_channel_request(device_list,R):
     return device_list
 
 def generate_channel_list(device_list):
-    # Generate list of picked channel
+    # Generate list of picked channel to be passed to the next function (check_collision)
     picked_channel=[]
     for device in device_list:
         if device.status=="transmitted":
@@ -52,13 +52,18 @@ def generate_channel_list(device_list):
 
 def check_collision(device_list, picked_channel, slot,max_transmission):
     for device in device_list:
+        # If device is part of transmitting devices who had picked a channel
         if device.status=="transmitted":
+            # Count how many devices picked the same channel from a list generated through generate_channel_list
             not_collide=picked_channel.count(device.channel)
+            # If only one device picked the channel, then mark as success
             if not_collide==1:
                 device.status="success"
                 device.success_slot=slot
+            # If more than one device picked the channel, mark as collided
             else:
                 device.status="collided"
+                # If that device has passed the maximum transmission, mark as failed
                 if device.total_transmission==max_transmission:
                     device.status="failed"
     return device_list
@@ -158,6 +163,8 @@ def start_sim(total_channel,total_machine,max_transmission,backoff_window,range_
                     break
                 f.write("\nslot: "+str(slot))
                 device_list=send_channel_request(device_list, total_channel)
+                
+                # Collision checking
                 picked_channel=generate_channel_list(device_list)
                 device_list=check_collision(device_list, picked_channel, slot,max_transmission)
                  # Print
