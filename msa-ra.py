@@ -3,6 +3,8 @@ from matplotlib import pyplot as plt
 from collections import Counter 
 import tkinter as tk
 
+
+# Device as object
 class Device:
 
     def __init__(self, id, channel, range_backoff, backoff_timer, total_transmission, status, success_slot):
@@ -17,7 +19,7 @@ class Device:
     def __str__(self):
         return "ID=%s,Channel=%s,Back off Range=%s,Back off timer=%s,Transmission=%s,Status=%s,Slot=%s" % (self.id,self.channel,self.range_backoff,self.backoff_timer,self.total_transmission,self.status,self.success_slot)
 
-
+# Initialization of device's attributes' values
 def initialization(M):
     device_list=[]
     for device_id in range(0,M):
@@ -32,9 +34,8 @@ def initialization(M):
         device_list.append(Device(id, channel, range_backoff, backoff_timer, total_transmission, status, success_slot))
     return device_list
 
-
+# Transmitting device will pick a random channel and changed its status to 'transmitted'
 def send_channel_request(device_list,R):
-    # Device that previously will transmit, transmit at this phase of ts
     for device in device_list:
         if device.status=="will_transmit":
             device.channel=random.randint(1,R)
@@ -42,14 +43,15 @@ def send_channel_request(device_list,R):
             device.status="transmitted"
     return device_list
 
+# Generate list of picked channel from device with 'transmitted' status to be passed to the next function (check_collision)
 def generate_channel_list(device_list):
-    # Generate list of picked channel to be passed to the next function (check_collision)
     picked_channel=[]
     for device in device_list:
         if device.status=="transmitted":
             picked_channel.append(device.channel)
     return picked_channel
 
+# Collision is checked here, using picked_channel list and comparison with devices' attribute
 def check_collision(device_list, picked_channel, slot,max_transmission):
     for device in device_list:
         # If device is part of transmitting devices who had picked a channel
@@ -68,6 +70,7 @@ def check_collision(device_list, picked_channel, slot,max_transmission):
                     device.status="failed"
     return device_list
 
+# Device pick random backoff time
 def set_collided_backoff(device_list,backoff_window):
     for device in device_list:
         if device.status=="collided":
@@ -78,6 +81,7 @@ def set_collided_backoff(device_list,backoff_window):
             device.backoff_timer=device.range_backoff
     return device_list
 
+# This function will decide time for devices to retransmit by modifying backoff timer and status
 def set_backoff_timer(device_list):
     for device in device_list:
         if device.status=="collided" or device.status=="wait":
@@ -88,6 +92,7 @@ def set_backoff_timer(device_list):
                 device.status="wait"
     return device_list
 
+# Check whether all devices within the list have done transmitting
 def complete_transmit_check(device_list, M):
     sum_success=0
     for device in device_list:
@@ -98,6 +103,7 @@ def complete_transmit_check(device_list, M):
     else:
         return 0
 
+# Function to count output
 def transmitting_devices_check(device_list,slot):
     sum_success=0
     sum_transmit=0
@@ -110,6 +116,7 @@ def transmitting_devices_check(device_list,slot):
     avg_success_slot=sum_success/sum_transmit
     return avg_success_slot
 
+# Function to count output
 def count_success_in_slot(device_list, slot):
     sum_success=0
     for device in device_list:
@@ -117,6 +124,7 @@ def count_success_in_slot(device_list, slot):
             sum_success+=1
     return sum_success
 
+# Function to count output
 def count_sucprob(device_list,M):
     sum_success=0
     for device in device_list:
@@ -125,6 +133,7 @@ def count_sucprob(device_list,M):
     avg_success=(sum_success/M)*100
     return avg_success
 
+#Simulation starts here
 def start_sim(total_channel,total_machine,max_transmission,backoff_window,range_check,repetition):
     M=1
     backoff_window=backoff_window
@@ -141,36 +150,45 @@ def start_sim(total_channel,total_machine,max_transmission,backoff_window,range_
     list_success_slot=[]
     slot_list=[]
     list_transmission_slot=[]
+    
+    # Opening log file
+    # Please check your PC's storage before testing a high number of device and setting high repetition
+    # Delete logging if not necessary
 
     f = open("log.txt", "w")
-
-
+    
+    # For each total devices within the range
     while M<total_machine+1:
         rep=0
+        # For each repetition
         while rep<repetition:
             f.write('\n--------------------------------------------')
             f.write("\nRepetition: "+str(rep))
             slot=1
             f.write('\n--------------------------------------------')
+            # Initialize device_list
             device_list=initialization(M)
             f.write('\nInitialization done.')
             for device in device_list:
                 f.write("\n"+str(device))
             f.write('\n--------------------------------------------')
+            # For each devices
             while True:
+                # Check whether all devices in device_list have done transmitting
                 breakpoint=complete_transmit_check(device_list,M)
+                # If yes, break this loop
                 if breakpoint==1:
                     break
                 f.write("\nslot: "+str(slot))
+                # Device in device_list will pick a channel if they're tranmitting in this slot
                 device_list=send_channel_request(device_list, total_channel)
-                
                 # Collision checking
                 picked_channel=generate_channel_list(device_list)
                 device_list=check_collision(device_list, picked_channel, slot,max_transmission)
-                 # Print
                 for device in device_list:
                     f.write("\n"+str(device))
                 f.write('\n--------------------------------------------')
+                # For data needed in distribution graph
                 if M==range_check:
                     sum_success=count_success_in_slot(device_list, slot)
                     try:
@@ -189,7 +207,7 @@ def start_sim(total_channel,total_machine,max_transmission,backoff_window,range_
                     list_success_slot[slot-1]+=sum_success
                     total_transmission=len(picked_channel)
                     list_transmission_slot[slot-1]+=total_transmission
-                # Setting backoff
+                # Setting backoff and counter
                 set_collided_backoff(device_list,backoff_window)
                 set_backoff_timer(device_list)
                 # For counting delay
@@ -245,7 +263,7 @@ def start_sim(total_channel,total_machine,max_transmission,backoff_window,range_
     f.write("\nAverage total transmission each slot: "+str(list_transmission_slot))
     return(num_of_dev,avg_success_list,avg_delay_list,slot_list,list_success_slot,list_transmission_slot)
 
-
+# Input and graphic set up
 def main():
     print("RA-MSA\n----------------------------------\nChoose parameter:\n1. Channel\n2. Backoff window\n3. Maximum wransmission\n----------------------------------\nYour choice: ")
     choice=int(input())
@@ -335,14 +353,14 @@ def main():
     axs[1, 0].plot(slot_list2, list_success_slot2,label='B')
     axs[1, 0].plot(slot_list3, list_success_slot3,label='C')
     axs[1, 0].plot(slot_list4, list_success_slot4,label='D')
-    axs[1, 0].set_title("Successful transmission at slot")
+    axs[1, 0].set_title("Successful transmission distribution at each slot")
     axs[1, 0].set(xlabel='Slot',ylabel='Total successful transmission')
     axs[1, 0].legend()
     axs[1, 1].plot(slot_list1, list_transmission_slot1,label='A')
     axs[1, 1].plot(slot_list2, list_transmission_slot2,label='B')
     axs[1, 1].plot(slot_list3, list_transmission_slot3,label='C')
     axs[1, 1].plot(slot_list4, list_transmission_slot4,label='D')
-    axs[1, 1].set_title("Total transmission at slot")
+    axs[1, 1].set_title("Transmission distribution at each slot")
     axs[1, 1].set(xlabel='Slot',ylabel='Total Transmission')
     axs[1, 1].legend()
     plt.show()
