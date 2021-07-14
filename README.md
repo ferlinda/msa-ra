@@ -1,6 +1,6 @@
 # MSA-RA
 
-Python simulator of Multichannel Slotted ALOHA. 
+Python simulator for Multichannel Slotted ALOHA. 
 
 ## Sample Input & Output
 
